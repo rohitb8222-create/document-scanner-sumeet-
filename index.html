@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="mr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Employee Document Scanner</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding-bottom: 50px; }
+    .card-scanner { border-radius: 16px; border: none; box-shadow: 0 8px 24px rgba(0,0,0,0.08); background: #fff; }
+    .header-box { background: linear-gradient(135deg, #1a73e8, #0d47a1); color: white; border-radius: 16px 16px 0 0; padding: 20px; }
+    .preview-box { border: 2px dashed #0d6efd; border-radius: 12px; background: #fafafa; min-height: 220px; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+    #previewImg { max-width: 100%; max-height: 350px; border-radius: 8px; display: none; }
+    .whatsapp-btn { background-color: #25D366; color: white; font-weight: bold; }
+    .whatsapp-btn:hover { background-color: #1ebd5a; color: white; }
+    .badge-mode { font-size: 0.75rem; padding: 4px 8px; }
+  </style>
+</head>
+<body>
+
+<div class="container mt-4" style="max-width: 650px;">
+  <div class="card card-scanner">
+    
+    <div class="header-box text-center">
+      <h4 class="mb-1"><i class="fa-solid fa-file-invoice"></i> Doc Scanner & Uploader</h4>
+      <p class="mb-0 small text-light opacity-75">Auto-fetch by EMP ID kiva Manual Name Entry</p>
+    </div>
+
+    <div class="card-body p-4">
+      
+      <!-- Emp ID Input -->
+      <div class="mb-3">
+        <label class="form-label fw-bold">1. EMP ID (Type kelya nantar auto details yetil):</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="fa-solid fa-id-badge"></i></span>
+          <input type="text" id="empId" class="form-control form-control-lg" placeholder="EMP ID taka (e.g. 1, 2, 5, 10...)" oninput="handleEmpIdInput()">
+        </div>
+        <small id="empStatus" class="form-text mt-1 d-block fw-semibold text-muted">
+          ID asel tr auto yeil, nasel tr khali manually naav type kara.
+        </small>
+      </div>
+
+      <!-- Employee Details (Editable / Manual Entry) -->
+      <div class="row g-2 mb-3">
+        <div class="col-md-6">
+          <label class="form-label small fw-bold text-secondary">
+            Employee Name <span class="badge bg-secondary badge-mode">Editable</span>
+          </label>
+          <input type="text" id="empName" class="form-control" placeholder="Employee che naav taka" oninput="checkReadyToUpload()">
+        </div>
+        
+        <div class="col-md-6">
+          <label class="form-label small fw-bold text-secondary">
+            Designation <span class="badge bg-secondary badge-mode">Editable</span>
+          </label>
+          <input type="text" id="empDesig" class="form-control" placeholder="Designation taka (Supervisor/Driver/etc.)" oninput="checkReadyToUpload()">
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label small fw-bold text-secondary">Department</label>
+          <input type="text" id="empDept" class="form-control" placeholder="Department">
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label small fw-bold text-secondary">Mobile No</label>
+          <input type="text" id="empMobile" class="form-control" placeholder="Mobile No">
+        </div>
+      </div>
+
+      <!-- Document Type / Remark -->
+      <div class="mb-3">
+        <label class="form-label fw-bold">2. Document Type / Remark:</label>
+        <select id="docRemark" class="form-select form-select-lg">
+          <option value="Warning Letter" selected>Warning Letter</option>
+          <option value="Acknowledgement">Acknowledgement</option>
+          <option value="Show Cause Notice">Show Cause Notice</option>
+          <option value="Attendance Issue">Attendance Issue</option>
+          <option value="Joining Document">Joining Document</option>
+          <option value="Other">Other Document</option>
+        </select>
+      </div>
+
+      <!-- Scan Document -->
+      <div class="mb-3">
+        <label class="form-label fw-bold">3. Document Scan / Photo Ghya:</label>
+        <div class="d-flex gap-2 mb-2">
+          <label class="btn btn-outline-primary flex-fill py-2">
+            <i class="fa-solid fa-camera"></i> Camera Chalu Kara
+            <input type="file" id="cameraInput" accept="image/*" capture="environment" class="d-none" onchange="handleFile(event)">
+          </label>
+          <label class="btn btn-outline-secondary flex-fill py-2">
+            <i class="fa-solid fa-image"></i> Gallery Madhun Ghya
+            <input type="file" id="fileInput" accept="image/*" class="d-none" onchange="handleFile(event)">
+          </label>
+        </div>
+
+        <div class="form-check form-switch mb-2">
+          <input class="form-check-input" type="checkbox" id="scanFilter" onchange="reapplyFilter()">
+          <label class="form-check-label small fw-semibold" for="scanFilter">Scanner Effect (High Contrast B&W)</label>
+        </div>
+
+        <div class="preview-box" id="previewArea">
+          <div id="placeholderText" class="text-center text-muted p-3">
+            <i class="fa-solid fa-file-image fa-3x mb-2 text-secondary opacity-50"></i>
+            <p class="mb-0">Camera open karun document cha photo ghya</p>
+          </div>
+          <img id="previewImg" alt="Document Preview">
+        </div>
+      </div>
+
+      <!-- Submit Button -->
+      <div class="d-grid mb-3">
+        <button id="uploadBtn" class="btn btn-primary btn-lg" onclick="uploadDoc()" disabled>
+          <i class="fa-solid fa-cloud-arrow-up"></i> Google Drive & Sheet Madhe Save Kara
+        </button>
+      </div>
+
+      <!-- Result Box -->
+      <div id="resultBox" class="alert alert-success d-none mt-3">
+        <h6 class="alert-heading fw-bold"><i class="fa-solid fa-circle-check"></i> Document Yashasviritya Save Jhale!</h6>
+        <p class="small mb-2">Google Sheet madhe record aala ahe ani file Drive var save jhali ahe.</p>
+        <p class="small mb-2 text-break">
+          <strong>Drive File:</strong> <a id="driveLinkText" href="#" target="_blank">View File</a>
+        </p>
+        <hr>
+        <div class="d-grid">
+          <button id="whatsappShareBtn" class="btn whatsapp-btn py-2" onclick="shareOnWhatsApp()">
+            <i class="fa-brands fa-whatsapp fa-lg me-1"></i> WhatsApp var Send Kara
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- 1833 Employees Master File -->
+<script src="employees.js"></script>
+
+<script>
+  // ITHE TUMCHI APPS SCRIPT WEB APP URL PASTE KARA:
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz2I6g0Sa5zyB8vd1rR1CcKVdjqZzYVxfo5TGVUr8DfXmOWRISEyHlhDtNu4od2Ts6Wpw/exec";
+
+  let originalImageObj = null;
+  let capturedBase64 = null;
+  let currentFileUrl = "";
+
+  // Instant EMP ID Search
+  function handleEmpIdInput() {
+    let inputVal = document.getElementById('empId').value.trim();
+    let statusText = document.getElementById('empStatus');
+
+    if (!inputVal) {
+      statusText.innerHTML = "ID asel tr auto yeil, nasel tr khali manually naav type kara.";
+      statusText.className = "form-text mt-1 d-block fw-semibold text-muted";
+      return;
+    }
+
+    if (typeof EMP_DATA !== 'undefined' && EMP_DATA[inputVal]) {
+      let emp = EMP_DATA[inputVal]; // [name, designation, department, mobile]
+      document.getElementById('empName').value = emp[0] || '';
+      document.getElementById('empDesig').value = emp[1] || '';
+      document.getElementById('empDept').value = emp[2] || '';
+      document.getElementById('empMobile').value = emp[3] || '';
+
+      statusText.innerHTML = "<span class='text-success'><i class='fa-solid fa-check-circle'></i> Employee sapadla! (Tumi haatane badalhi karu shakta)</span>";
+    } else {
+      statusText.innerHTML = "<span class='text-warning text-dark'><i class='fa-solid fa-pen'></i> Master list madhe nahiye. Krupaya khali manually Name ani Designation type kara.</span>";
+    }
+    checkReadyToUpload();
+  }
+
+  // Camera & Image handling
+  function handleFile(event) {
+    let file = event.target.files[0];
+    if (!file) return;
+
+    let reader = new FileReader();
+    reader.onload = function(e) {
+      let img = new Image();
+      img.onload = function() {
+        originalImageObj = img;
+        renderImage();
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function reapplyFilter() {
+    if (originalImageObj) {
+      renderImage();
+    }
+  }
+
+  function renderImage() {
+    if (!originalImageObj) return;
+
+    let canvas = document.createElement('canvas');
+    let ctx = canvas.getContext('2d');
+
+    let maxDim = 1500;
+    let width = originalImageObj.width;
+    let height = originalImageObj.height;
+
+    if (width > height && width > maxDim) {
+      height = Math.round((height * maxDim) / width);
+      width = maxDim;
+    } else if (height > maxDim) {
+      width = Math.round((width * maxDim) / height);
+      height = maxDim;
+    }
+
+    canvas.width = width;
+    canvas.height = height;
+    ctx.drawImage(originalImageObj, 0, 0, width, height);
+
+    let applyBw = document.getElementById('scanFilter').checked;
+    if (applyBw) {
+      let imgData = ctx.getImageData(0, 0, width, height);
+      let d = imgData.data;
+      for (let i = 0; i < d.length; i += 4) {
+        let gray = 0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2];
+        gray = gray > 128 ? Math.min(255, gray * 1.15) : Math.max(0, gray * 0.85);
+        d[i] = gray;
+        d[i+1] = gray;
+        d[i+2] = gray;
+      }
+      ctx.putImageData(imgData, 0, 0);
+    }
+
+    capturedBase64 = canvas.toDataURL('image/jpeg', 0.82);
+
+    let previewImg = document.getElementById('previewImg');
+    previewImg.src = capturedBase64;
+    previewImg.style.display = 'block';
+    document.getElementById('placeholderText').style.display = 'none';
+
+    checkReadyToUpload();
+  }
+
+  function checkReadyToUpload() {
+    let nameVal = document.getElementById('empName').value.trim();
+    let hasPhoto = capturedBase64 !== null;
+    document.getElementById('uploadBtn').disabled = !(nameVal && hasPhoto);
+  }
+
+  // Upload to Apps Script Webhook
+  async function uploadDoc() {
+    let uploadBtn = document.getElementById('uploadBtn');
+    uploadBtn.disabled = true;
+    uploadBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Drive var Save hot ahe...';
+
+    let payload = {
+      empId: document.getElementById('empId').value.trim() || 'MANUAL',
+      name: document.getElementById('empName').value.trim(),
+      designation: document.getElementById('empDesig').value.trim(),
+      department: document.getElementById('empDept').value.trim(),
+      mobile: document.getElementById('empMobile').value.trim(),
+      remark: document.getElementById('docRemark').value,
+      fileData: capturedBase64
+    };
+
+    try {
+      let response = await fetch(SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+      let res = await response.json();
+
+      uploadBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Google Drive & Sheet Madhe Save Kara';
+      
+      if (res.status === 'success') {
+        currentFileUrl = res.fileUrl;
+        document.getElementById('resultBox').classList.remove('d-none');
+        document.getElementById('driveLinkText').href = res.fileUrl;
+        document.getElementById('driveLinkText').innerText = res.fileName;
+        document.getElementById('resultBox').scrollIntoView({ behavior: 'smooth' });
+      } else {
+        alert("Upload Error: " + res.message);
+        uploadBtn.disabled = false;
+      }
+    } catch (err) {
+      alert("Error aala: " + err);
+      uploadBtn.disabled = false;
+      uploadBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Google Drive & Sheet Madhe Save Kara';
+    }
+  }
+
+  // WhatsApp Share
+  function shareOnWhatsApp() {
+    if (!currentFileUrl) return;
+
+    let empId = document.getElementById('empId').value.trim() || '-';
+    let name = document.getElementById('empName').value.trim();
+    let desig = document.getElementById('empDesig').value.trim();
+    let remark = document.getElementById('docRemark').value;
+    let targetMobile = document.getElementById('empMobile').value.trim();
+
+    let text = "📄 *EMPLOYEE DOCUMENT RECORD*\n\n" +
+               "👤 *Name:* " + name + "\n" +
+               "🆔 *EMP ID:* " + empId + "\n" +
+               "💼 *Designation:* " + desig + "\n" +
+               "📋 *Document Type:* " + remark + "\n\n" +
+               "🔗 *View Scanned File:* \n" + currentFileUrl;
+
+    let cleanPhone = targetMobile.replace(/[^0-9]/g, '');
+    let waUrl = "";
+    if (cleanPhone.length === 10) {
+      waUrl = "https://api.whatsapp.com/send?phone=91" + cleanPhone + "&text=" + encodeURIComponent(text);
+    } else {
+      waUrl = "https://api.whatsapp.com/send?text=" + encodeURIComponent(text);
+    }
+    window.open(waUrl, '_blank');
+  }
+</script>
+
+</body>
+</html>
